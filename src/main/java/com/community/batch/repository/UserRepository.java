@@ -8,9 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Created by youngjae on 2018. 3. 3..
- */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 

@@ -18,7 +18,6 @@ import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cglib.core.Local;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -75,34 +74,41 @@ public class InactiveUserJobConfig {
 
     @Bean
     @StepScope
+    // 코드를 통해서 정적으로 파라미터를 전달받는 Reader
     public JpaPagingItemReader<User> inactiveUserJpaReader(){
         JpaPagingItemReader<User> jpaPagingItemReader = new JpaPagingItemReader(){
+
+            // 청크 사이즈와 페이지 사이즈가 같다면 getPage를 return 0으로 오버라이드하여 DB index 문제 해결
             @Override
             public int getPage() {
                 return 0;
             }
         };
+
+        // Read 할 Item을 얻는 쿼리
         jpaPagingItemReader.setQueryString("select u from User as u where u.updatedDate < :updatedDate and u.status = :status");
 
+        // 쿼리에 사용할 파라미터 설정
         Map<String, Object> map = new HashMap<>();
         LocalDateTime now = LocalDateTime.now();
         map.put("updatedDate", now.minusYears(1));
         map.put("status", UserStatus.ACTIVE);
 
+        // 파라미터, 페이지 사이즈, 엔티티 매니저 설정
         jpaPagingItemReader.setParameterValues(map);
         jpaPagingItemReader.setEntityManagerFactory(entityManagerFactory);
         jpaPagingItemReader.setPageSize(CHUNK_SIZE);
         return jpaPagingItemReader;
     }
 
-//    @Bean
-//    @StepScope
-//    // SpEL로 동적으로 파라미터를 전달받는 Reader
-//    public ListItemReader<User> inactiveUserReader(@Value("#{jobParameters[nowDate]}") Date nowDate, UserRepository userRepository) {
-//        LocalDateTime now = LocalDateTime.ofInstant(nowDate.toInstant(), ZoneId.systemDefault());
-//        List<User> inactiveUsers = userRepository.findByCreatedDateBeforeAndStatusEquals(now.minusYears(1), UserStatus.ACTIVE);
-//        return new ListItemReader<>(inactiveUsers);
-//    }
+    @Bean
+    @StepScope
+    // SpEL로 동적으로 파라미터를 전달받는 Reader
+    public ListItemReader<User> inactiveUserReader(@Value("#{jobParameters[nowDate]}") Date nowDate, UserRepository userRepository) {
+        LocalDateTime now = LocalDateTime.ofInstant(nowDate.toInstant(), ZoneId.systemDefault());
+        List<User> inactiveUsers = userRepository.findByCreatedDateBeforeAndStatusEquals(now.minusYears(1), UserStatus.ACTIVE);
+        return new ListItemReader<>(inactiveUsers);
+    }
 
     private InactiveItemProcessor inactiveUserProcessor() {
         return new InactiveItemProcessor();
