@@ -21,4 +21,4 @@ $ java -jar target/*.jar
 ## 책과 다른 점
 - 시큐리티 설정관련 User 값 삭제
 - 7.7 멀티 스레드 부분 정리 안함
-- Tasklet 방식 정리 안함
+- 자주 사용되지 않는 Tasklet 방식 정리 안함
